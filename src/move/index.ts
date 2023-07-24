@@ -55,6 +55,7 @@ export class MoveExecute extends Move {
   target?: PokemonInBattle
   stab: 2 | 1.5 = 1.5
   basePower?: number
+  multuplier = 1
 
 
   private get isStab () {
@@ -70,7 +71,8 @@ export class MoveExecute extends Move {
     const defStat = this.target.stats[defKey]
     const level = this.target.level
     const randomFactor =  getRandomInt(85, 100) / 100
-    return (((level * 0.4) + 2) * atKstat * this.power / (defStat * 50)) * randomFactor
+  
+    return Math.floor((((((2 * level) / 5 + 2) * this.power * atKstat) / defStat) / 50 + 2) * randomFactor)
   }
 
   constructor (move: Move, option: {

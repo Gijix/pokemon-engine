@@ -232,3 +232,15 @@ const { ACUPRESSSURE, AFTER_YOU, ATTRACT, ASSIST, BARRAGE, BATON_PASS, BELLY_DRU
   UPROAR, VICE_GRIP, WEATHER_BALL, WHIRLWIND,
   WISH, WORK_UP, WRAP, WRING_OUT,
   YAWN } = NormalMoveEnum
+
+  export const moveDict: Record<NormalMoveEnum, Move> = {
+    [TACKLE]: new Move({
+      name: TACKLE,
+      type: TypeEnum.NORMAL,
+      category: 'physical',
+      power: 40,
+      precision: 65,
+      pp: 48,
+      attributs: {}
+    })
+  }

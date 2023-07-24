@@ -33,13 +33,14 @@ export class PokemonInBattle {
     this.level = option.level
     this._nature = option.nature
     this._ability = pokemon.abilities[0]
+    const fn = this.calculStats.bind(this)
     this.stats = {
-      atk: this.calculStats('atk'),
-      def: this.calculStats('def'),
-      spAtk: this.calculStats('spAtk'),
-      spDef: this.calculStats('spDef'),
-      spe: this.calculStats('spe'),
-      hp: this.calculStats('atk')
+      get atk (){ return fn('atk')},
+      get def (){ return fn('def')},
+      get spAtk (){ return fn('spAtk')},
+      get spDef (){ return fn('spDef')},
+      get spe (){ return fn('spe')},
+      get hp (){ return fn('hp')}
     }
   }
 
@@ -48,7 +49,7 @@ export class PokemonInBattle {
     const baseStat = this.pokemon.baseStat[type]
     const ev = this._evs[type]
     const iv = this._ivs[type]
-    let value = ((((((baseStat * 2) + iv) + (Math.sqrt(ev) / 4)) * this.level) / 100) + (isHp ? this.level + 10 : 5))
+    let value = ((((((baseStat * 2) + iv) + (ev / 4)) * this.level) / 100) + (isHp ? this.level + 10 : 5))
 
     if (this.nature.decreaseStat === type)  {
       value = value * 0.9
