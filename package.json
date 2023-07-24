@@ -1,0 +1,26 @@
+{
+  "name": "ts-template",
+  "version": "1.0.0",
+  "description": "template for developping in typescript",
+  "main": "dist/main.js",
+  "type": "module",
+  "dependencies": {
+    "@types/gulp": "^4.0.9",
+    "@types/node": "^18.11.9",
+    "ansi-colors": "^4.1.3",
+    "axios": "^1.4.0",
+    "del": "^7.0.0",
+    "gulp": "^4.0.2",
+    "gulp-esbuild": "^0.10.6",
+    "nodemon": "^2.0.20",
+    "picocolors": "^1.0.0",
+    "typescript": "^4.8.4"
+  },
+  "scripts": {
+    "dev-node": "gulp watch",
+    "dev-bun": "bun run --watch src/main.ts ",
+    "start": "node dist/main.js"
+  },
+  "author": "Orlando",
+  "license": "ISC"
+}
