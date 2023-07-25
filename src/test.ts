@@ -27,12 +27,10 @@ const moveExecuted = new MoveExecute(moveDict.thunderbolt, {
   target: heatran
 })
 
-heatran.setEv('spDef',100)
-starmie.setEv('spAtk', 200)
+heatran.updateState('spDef', 2)
 
-console.log('starmie',starmie.evs)
-console.log('heatran' ,heatran.evs)
-console.log(moveDict.thunderbolt)
+console.log('starmie',starmie.stats)
+console.log('heatran' ,heatran.stats)
 console.log("starmie => thunderbolt => heatran")
-const list = [...Array(1000)].map(() => moveExecuted.calcBasePower())
-console.log(list.sort())
+const list = [...Array(100)].map(() => moveExecuted.calcBasePower())
+console.log(Math.min(...list), Math.max(...list))

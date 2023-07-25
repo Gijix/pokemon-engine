@@ -1,4 +1,5 @@
-import { GameEvents, GameState } from "../battle/index.js"
+import { GameEvents } from "../battle/index.js"
+import { AbstractEvent } from "../util/AbstractEvents.js"
 
 export enum WeatherEnum {
   SANDSTORM = "sandstorm",
@@ -34,30 +35,9 @@ interface EventOption<T extends EventEnum> {
   extended?: number
 }
 
-export class BaseEvent<T extends EventEnum = EventEnum> {
-  type: T
+export class BaseEvent<T extends EventEnum = EventEnum> extends AbstractEvent<T> {
   turn: number
   extended?: number
-
-  initialize (game: GameState) {
-    Object.keys(this.listeners).forEach((key) => {
-      const func = this.listeners[key]
-
-      if (func) {
-        game.on(key, func)
-      }
-    })
-  }
-
-  clear (game: GameState) {
-    Object.keys(this.listeners).forEach((key) => {
-      const func = this.listeners[key]
-
-      if (func) {
-        game.off(key, func)
-      }
-    })
-  }
 
   extend () {
     if (this.extended) {
@@ -66,6 +46,7 @@ export class BaseEvent<T extends EventEnum = EventEnum> {
   }
 
   constructor (options: EventOption<T>,public listeners: Listeners) {
+    super(options.type, listeners)
     this.extended = options.extended
     this.type = options.type
     this.turn = options.turn

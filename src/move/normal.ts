@@ -1,5 +1,7 @@
 import { Move } from "."
+import { InBattleStatsKeys } from "../battle/pokemon"
 import { TypeEnum  } from "../pokemonType.js"
+import { getRandomInt } from "../util/math"
 
 export enum NormalMoveEnum {
   ACUPRESSSURE = 'acupressure',
@@ -233,14 +235,33 @@ const { ACUPRESSSURE, AFTER_YOU, ATTRACT, ASSIST, BARRAGE, BATON_PASS, BELLY_DRU
   WISH, WORK_UP, WRAP, WRING_OUT,
   YAWN } = NormalMoveEnum
 
+  const { NORMAL } = TypeEnum
+
   export const moveDict: Record<NormalMoveEnum, Move> = {
     [TACKLE]: new Move({
       name: TACKLE,
-      type: TypeEnum.NORMAL,
+      type: NORMAL,
       category: 'physical',
       power: 40,
-      precision: 65,
+      precision: 100,
       pp: 48,
-      attributs: {}
+      attributs: {},
+    }),
+    [ACUPRESSSURE]: new Move({
+      name: ACUPRESSSURE,
+      type: NORMAL,
+      category: 'status',
+      pp: 48,
+      attributs: {
+        isMissable: false,
+        selfTarget: true,
+      },
+      effect (move) {
+        const stats: InBattleStatsKeys[] = ['def', 'spe', 'spAtk', 'spDef', 'atk']
+        const key = stats[getRandomInt(0,5)]
+        if (move.target) {
+          move.target.updateState(key, 2)
+        }
+      }
     })
   }

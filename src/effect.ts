@@ -1,7 +1,10 @@
+import { GameState } from "./battle/index.js"
+import { PokemonInBattle } from "./battle/pokemon.js"
 import { StatsKey } from "./index.js"
 import { IntRange } from "./type.js"
+import { AbstractEvent, Listeners } from "./util/AbstractEvents.js"
 
-export enum Status {
+export enum StaticStatus {
   BURN = 'burn',
   FREEZE = 'freeze',
   PARALYSIS = 'paralysis',
@@ -10,7 +13,7 @@ export enum Status {
   SLEEP = 'sleep',
 }
 
-const { BURN, FREEZE, PARALYSIS, POISON, BADLYPOISON, SLEEP } = Status
+const { BURN, FREEZE, PARALYSIS, POISON, BADLYPOISON, SLEEP } = StaticStatus
 
 export enum VolatileStatus {
   BOUND = ' bound',
@@ -52,12 +55,32 @@ export enum VolatileStatus {
   TRANSFORMED = 'transformed',
 }
 
-interface StatsChange {
+export interface StatsChange {
   probability: IntRange<0,101>
   stats: StatsKey
   number: IntRange<0, 6>
 }
 
-interface AbstractStatus  {
-  type: Status
+export class Status<T extends StaticStatus = StaticStatus> extends AbstractEvent<T, Status> {
+  turn = 0
+  constructor (name: T, listener: Listeners<Status>) {
+    listener = Object.keys(listener).reduce((acc, key) => {
+      let fn = acc[key]
+      if (fn) {
+        acc[key] = fn.bind(this)
+      }
+
+      return acc
+    }, {} as Listeners<Status>)
+    super(name, listener)
+  }
 }
+
+export const sleep = new Status(StaticStatus.SLEEP, {
+  endTurn () {
+    this.turn + 1
+  },
+  move () {
+
+  }
+})
