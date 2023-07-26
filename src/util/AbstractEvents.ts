@@ -1,9 +1,10 @@
 import { GameEvents, GameState } from "../battle/."
 
-export type Listeners<T = any> = Partial<Record<keyof GameEvents, (this: T, ...arg: GameEvents[keyof GameEvents]) => void>> 
+export type Listeners<T = any, S extends keyof GameEvents = keyof GameEvents> = Partial<{
+  [K in S]: (this: T, ...args: GameEvents[K]) => unknown;
+}>;
 
-
-export class AbstractEvent<T, S = any> {
+export abstract class AbstractEvent<T, S = any, R extends keyof GameEvents = keyof GameEvents> {
   initialize (game: GameState) {
     Object.keys(this.listeners).forEach((key) => {
       const func = this.listeners[key]
@@ -24,5 +25,5 @@ export class AbstractEvent<T, S = any> {
     })
   }
 
-  constructor (public type: T , public listeners: Listeners<S>) {}
+  constructor (public type: T , public listeners: Listeners<S, R>) {}
 }

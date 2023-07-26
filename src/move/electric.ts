@@ -6,7 +6,7 @@ export enum ElectricMoveEnum {
   THUNDER = 'thunder',
 }
 
-export const moveDict: Record<ElectricMoveEnum, Move> = {
+const moveDict: Record<ElectricMoveEnum, Move> = {
   [ElectricMoveEnum.THUNDERBOLT]: new Move({
     name: ElectricMoveEnum.THUNDERBOLT,
     category: 'special',
@@ -18,3 +18,5 @@ export const moveDict: Record<ElectricMoveEnum, Move> = {
     }
   })
 }
+
+export default moveDict

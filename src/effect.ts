@@ -1,8 +1,8 @@
-import { GameState } from "./battle/index.js"
 import { PokemonInBattle } from "./battle/pokemon.js"
 import { StatsKey } from "./index.js"
 import { IntRange } from "./type.js"
 import { AbstractEvent, Listeners } from "./util/AbstractEvents.js"
+import { getRandomInt } from "./util/math.js"
 
 export enum StaticStatus {
   BURN = 'burn',
@@ -55,32 +55,70 @@ export enum VolatileStatus {
   TRANSFORMED = 'transformed',
 }
 
+type IStatus = VolatileStatus | StaticStatus
+
 export interface StatsChange {
   probability: IntRange<0,101>
   stats: StatsKey
   number: IntRange<0, 6>
 }
 
-export class Status<T extends StaticStatus = StaticStatus> extends AbstractEvent<T, Status> {
-  turn = 0
-  constructor (name: T, listener: Listeners<Status>) {
-    listener = Object.keys(listener).reduce((acc, key) => {
-      let fn = acc[key]
+export abstract class Status<T extends IStatus = IStatus> extends AbstractEvent<T, Status> {
+  abstract pokemon: PokemonInBattle
+  protected constructor (name: T, listener: Listeners<Status>) {
+    Object.keys(listener).forEach((key) => {
+      let fn = listener[key]
       if (fn) {
-        acc[key] = fn.bind(this)
+        //@ts-ignore
+        listener[key] = fn.bind(this)
       }
-
-      return acc
-    }, {} as Listeners<Status>)
+    })
     super(name, listener)
+  }
+  turn = 0;
+  isTurnLock = false
+  static create<T extends IStatus> (name: T,listener: Listeners<Status & { pokemon: PokemonInBattle}>, ) {
+    return class extends this<T> {
+      constructor (public pokemon: PokemonInBattle, isTurnLock?: boolean) {
+        super(name, listener)
+        if (isTurnLock) {
+          this.isTurnLock = true
+        }
+      }
+    }
   }
 }
 
-export const sleep = new Status(StaticStatus.SLEEP, {
-  endTurn () {
-    this.turn + 1
-  },
-  move () {
+export const Sleep = Status.create(StaticStatus.SLEEP, {
+  move (move) {
+    if (move.executor !== this.pokemon) return
+    if (this.isTurnLock) {
+      if (this.turn >= 2) {
+        this.pokemon.staticStatus = undefined
+        this.clear(this.pokemon.gameState)
+      } else {
+        this.turn++
+        return
+      }
+    }
+    if (this.turn === 0) {
+      this.turn++
+    } else {
+      if(getRandomInt(0, 4 - this.turn) === 0) {
+        this.pokemon.staticStatus = undefined
+        this.clear(this.pokemon.gameState)
+      } else {
+        this.turn++
+      }
+    }
+  }
+})
 
+export const Infatuation = Status.create(VolatileStatus.INFATUATION,{
+  move (move) {
+    if (move.executor !== this.pokemon) return
+    if (getRandomInt(0,1) === 0) {
+      move.isCancel = true
+    }
   }
 })

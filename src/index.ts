@@ -1,7 +1,7 @@
-import { getPokemon } from "./api.js"
+import { getPokemon, getSpecies } from "./api.js"
 import { PokemonInBattle } from "./battle/pokemon.js"
 import { TypeEnum } from "./pokemonType.js"
-import { IPokemon, IntRange } from "./type.js"
+import { IPokemon, PokemonSpecies } from "./type.js"
 
 const convertDict = {
   'speed': 'spe',
@@ -21,21 +21,24 @@ interface PokemonOptions {
   types: PokemonTypes
   movepool: string[]
   abilities: string[]
-  baseStat: StatDict
+  baseStat: StatDict,
+  hasGender: boolean
 }
 
 export class Pokemon {
   static async create (name: string) {
-    const data = await getPokemon(name.toLowerCase())
-    return new this(this.convert(data))
+    const data = await Promise.all([getPokemon(name.toLowerCase()), getSpecies(name.toLowerCase())])
+    
+    return new this(this.convert(...data))
   }
 
-  static convert (data: IPokemon): PokemonOptions {
+  static convert (pokemon: IPokemon, species: PokemonSpecies): PokemonOptions {
     return {
-      types: data.types.map((type) => type.type.name) as PokemonTypes,
-      movepool: data.moves.map((move) => move.move.name.replace('-', ' ')),
-      abilities: data.abilities.map(ability => ability.ability.name.replace('-', ' ')),
-      baseStat: data.stats.reduce((acc, stat) => {
+      hasGender: (species.gender_rate  !== -1),
+      types: pokemon.types.map((type) => type.type.name) as PokemonTypes,
+      movepool: pokemon.moves.map((move) => move.move.name.replace('-', ' ')),
+      abilities: pokemon.abilities.map(ability => ability.ability.name.replace('-', ' ')),
+      baseStat: pokemon.stats.reduce((acc, stat) => {
         const name = stat.stat.name as keyof typeof convertDict
         acc[convertDict[name]] = stat.base_stat
         return acc
@@ -43,14 +46,16 @@ export class Pokemon {
     }
   }
 
+  readonly hasGender: boolean
   readonly baseStat: StatDict
   readonly movepool: string[]
   readonly abilities : string[]
-  types: PokemonTypes
+  readonly types: PokemonTypes
   protected constructor (options: PokemonOptions) {
     this.baseStat = options.baseStat
     this.types = options.types
     this.movepool = options.movepool
     this.abilities = options.abilities
+    this.hasGender = options.hasGender
   }
 }

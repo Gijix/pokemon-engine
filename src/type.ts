@@ -179,3 +179,73 @@ export interface Stat {
   effort:    number;
   stat:      Species;
 }
+
+export interface PokemonSpecies {
+  id:                     number;
+  name:                   string;
+  order:                  number;
+  gender_rate:            number;
+  capture_rate:           number;
+  base_happiness:         number;
+  is_baby:                boolean;
+  is_legendary:           boolean;
+  is_mythical:            boolean;
+  hatch_counter:          number;
+  has_gender_differences: boolean;
+  forms_switchable:       boolean;
+  growth_rate:            Link;
+  pokedex_numbers:        PokedexNumber[];
+  egg_groups:             Link[];
+  color:                  Link;
+  shape:                  Link;
+  evolves_from_species:   Link;
+  evolution_chain:        EvolutionChain;
+  habitat:                null;
+  generation:             Link;
+  names:                  Name[];
+  flavor_text_entries:    FlavorTextEntry[];
+  form_descriptions:      FormDescription[];
+  genera:                 Genus[];
+  varieties:              Variety[];
+}
+
+export interface Link {
+  name: string;
+  url:  string;
+}
+
+export interface EvolutionChain {
+  url: string;
+}
+
+export interface FlavorTextEntry {
+  flavor_text: string;
+  language:    Link;
+  version:     Link;
+}
+
+export interface FormDescription {
+  description: string;
+  language:    Link;
+}
+
+export interface Genus {
+  genus:    string;
+  language: Link;
+}
+
+export interface Name {
+  name:     string;
+  language: Link;
+}
+
+export interface PokedexNumber {
+  entry_number: number;
+  pokedex:      Link;
+}
+
+export interface Variety {
+  is_default: boolean;
+  pokemon:    Link;
+}
+

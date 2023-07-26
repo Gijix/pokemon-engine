@@ -1,5 +1,5 @@
 import { GameEvents } from "../battle/index.js"
-import { AbstractEvent } from "../util/AbstractEvents.js"
+import { AbstractEvent, Listeners } from "../util/AbstractEvents.js"
 
 export enum WeatherEnum {
   SANDSTORM = "sandstorm",
@@ -28,7 +28,6 @@ export enum OtherEventEnum {
 
 export type EventEnum = WeatherEnum | TerrainEventEnum | OtherEventEnum
 
-export type Listeners = Partial<Record<keyof GameEvents, (...arg: GameEvents[keyof GameEvents]) => void>> 
 interface EventOption<T extends EventEnum> {
   type: T
   turn: number

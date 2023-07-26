@@ -6,10 +6,13 @@ import { WaterMoveEnum } from "./water.js";
 import { ElectricMoveEnum } from "./electric.js";
 import { getRandomInt } from "../util/math.js";
 import { StatsChange } from "../effect.js";
+import normalMoves from "./normal.js";
+
+export type MoveEnum = NormalMoveEnum  | WaterMoveEnum | ElectricMoveEnum
+export const moves: Record<MoveEnum, Move> = {...normalMoves}
 
 type MoveCategory = 'special' | 'status' | 'physical'
 
-type MoveEnum = NormalMoveEnum  | WaterMoveEnum | ElectricMoveEnum
 
 interface MoveAttributs {
   isContact?: boolean
@@ -17,6 +20,8 @@ interface MoveAttributs {
   lifeSteal?: number
   selfTarget?: boolean
   statsChange?: StatsChange[]
+  priority?: number
+  ignoreSleeping?: boolean
 }
 
 interface MoveOptions {
@@ -30,6 +35,10 @@ interface MoveOptions {
   effect?(this: GameState, move: MoveExecute): void
 }
 
+interface RequiredOptions {
+  priority: number
+}
+
 export class Move {
   name: MoveEnum
   type: TypeEnum
@@ -37,7 +46,9 @@ export class Move {
   power: number
   precision: number
   pp: number
-  attributs: MoveAttributs
+  attributs: MoveAttributs & RequiredOptions = {
+    priority: 0
+  }
   effect?: (this: GameState, move: MoveExecute) => void 
   constructor (options: MoveOptions) {
     const { type, category, power, precision, attributs, name, effect, pp } = options
@@ -46,9 +57,16 @@ export class Move {
     this.category = category
     this.power = power || 0
     this.precision = precision || 0
-    this.attributs = attributs
+    this.attributs = {...this.attributs, ...attributs}
     this.pp = pp
     this.effect = effect
+  }
+
+  execute (executor: PokemonInBattle, target?: PokemonInBattle) {
+    if (this.constructor.name !== 'Move') {
+      throw new Error('move already execute')
+    }
+    return new MoveExecute(this, {executor, target})
   }
 }
 
@@ -59,6 +77,7 @@ export class MoveExecute extends Move {
   basePower?: number
   multiplier = 1
   isCancel = false
+  isBlockedBySleeping = false
 
   private get isStab () {
     return this.executor.types.includes(this.type)
@@ -73,7 +92,10 @@ export class MoveExecute extends Move {
 
     if (this.target) {
       if (this.category !== 'status') {
-        this.basePower = this.calcBasePower() * this.multiplier * this.stab
+        this.basePower = this.calcBasePower() * this.multiplier 
+        if (this.isStab) {
+          this.basePower = this.basePower * this.stab
+        }
         this.target.deal(this)
       }
 

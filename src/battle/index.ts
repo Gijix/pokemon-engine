@@ -70,6 +70,15 @@ export class GameState extends EventEmitter<GameEvents> {
         this.weather = undefined
       }
     }
+
+    this.on('switch', (oldPokemon) => {
+      oldPokemon.volatileStatus.forEach(status => {
+        status.clear(this)
+      })
+
+      oldPokemon.volatileStatus.clear()
+      oldPokemon.resetStats()
+    })
   }
 
   registerTerrain (terrain: BaseEvent<OtherEventEnum>) {

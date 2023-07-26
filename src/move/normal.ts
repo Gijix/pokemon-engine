@@ -1,5 +1,6 @@
 import { Move } from "."
 import { InBattleStatsKeys } from "../battle/pokemon"
+import { Infatuation } from "../effect"
 import { TypeEnum  } from "../pokemonType.js"
 import { getRandomInt } from "../util/math"
 
@@ -237,7 +238,7 @@ const { ACUPRESSSURE, AFTER_YOU, ATTRACT, ASSIST, BARRAGE, BATON_PASS, BELLY_DRU
 
   const { NORMAL } = TypeEnum
 
-  export const moveDict: Record<NormalMoveEnum, Move> = {
+  const moveDict: Record<NormalMoveEnum, Move> = {
     [TACKLE]: new Move({
       name: TACKLE,
       type: NORMAL,
@@ -245,7 +246,9 @@ const { ACUPRESSSURE, AFTER_YOU, ATTRACT, ASSIST, BARRAGE, BATON_PASS, BELLY_DRU
       power: 40,
       precision: 100,
       pp: 48,
-      attributs: {},
+      attributs: {
+        isContact: true
+      },
     }),
     [ACUPRESSSURE]: new Move({
       name: ACUPRESSSURE,
@@ -257,11 +260,49 @@ const { ACUPRESSSURE, AFTER_YOU, ATTRACT, ASSIST, BARRAGE, BATON_PASS, BELLY_DRU
         selfTarget: true,
       },
       effect (move) {
-        const stats: InBattleStatsKeys[] = ['def', 'spe', 'spAtk', 'spDef', 'atk']
-        const key = stats[getRandomInt(0,5)]
+        const stats: InBattleStatsKeys[] = ['def', 'spe', 'spAtk', 'spDef', 'atk', 'acc', 'eva']
+        const key = stats[getRandomInt(0,6)]
         if (move.target) {
           move.target.updateState(key, 2)
         }
       }
+    }),
+    [ATTRACT]: new Move({
+      name: ATTRACT,
+      type: NORMAL,
+      category: 'status',
+      pp: 24,
+      effect (move) {
+        if (!move.target) return
+        if (move.executor.isCompatible(move.target)) {
+          move.target.registerStatus(new Infatuation(move.target))
+        }
+      },      
+      attributs: {}
+    }),
+    [SLEEP_TALK]: new Move({
+      name: SLEEP_TALK,
+      type: NORMAL,
+      category: 'status',
+      pp: 16,
+      attributs: {
+        isMissable: false,
+        ignoreSleeping: true
+      },
+      effect (move) {
+        const moves = move.executor.moves
+        let list = Object.keys(moves).reduce<Move[]>((acc, key) => {
+          let move = moves[key]
+          if (move && move.name !== SLEEP_TALK) {
+            acc.push(move)
+          }
+          return acc
+        }, [])
+        const moveToUse = list[getRandomInt(0, list.length - 1)]
+
+        moveToUse.execute(move.executor, move.target).attributs.ignoreSleeping = true
+      }
     })
   }
+
+  export default moveDict
