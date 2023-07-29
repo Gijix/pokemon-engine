@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { IPokemon } from './type.js'
+import type { IPokemon, PokemonSpecies } from './type.js'
 
 const API_BASEURL = "https://pokeapi.co/api/v2"
 const api = axios.create({
@@ -9,4 +9,8 @@ const api = axios.create({
 
 export async function getPokemon (name: string) {
   return (await api.get<IPokemon>(`/pokemon/${name}`)).data
+}
+
+export async function getSpecies (name: string) {
+  return (await api.get<PokemonSpecies>(`/pokemon-species/${name}`)).data
 }

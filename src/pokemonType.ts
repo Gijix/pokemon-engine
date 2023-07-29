@@ -79,7 +79,15 @@ class Type<S extends TypeEnum = TypeEnum> implements IType<S> {
   }
 }
 
-export const typeDict = {
+export const typeDict: Record<TypeEnum, Type> = {
+  [POISON]:new Type({
+    name: POISON,
+    effectiveness: [GRASS, FAIRY],
+    weakness: [GROUND, PSYCHIC],
+    resistances: [FIGHTING, GRASS, BUG, POISON, FAIRY],
+    innefficiencies: [ROCK, GROUND, POISON],
+    ineffectiveness: [STEEL]
+  }),
   [GRASS] : new Type({
     name: GRASS,
     effectiveness: [WATER, GROUND, ROCK],

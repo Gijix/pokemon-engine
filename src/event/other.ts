@@ -1,4 +1,4 @@
-import { BaseEvent, OtherEventEnum } from ".";
+import { BaseEvent, OtherEventEnum } from "./index.js";
 
 export const distorsion = new BaseEvent({
   turn: 4,

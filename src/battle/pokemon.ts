@@ -1,24 +1,26 @@
-import { GameState } from ".";
-import { Pokemon, StatDict, StatsKey } from "..";
-import { StaticStatus, Status } from "../effect";
-import { MoveExecute } from "../move/.";
-import { natureDict, NatureEnum } from "../nature.js";
+import { GameState } from "./index.js";
+import { Pokemon, StatDict, StatsKey } from "../index.js";
+import { StaticStatus, Status, VolatileStatus } from "../effect.js";
+import { Move, MoveEnum, MoveExecute } from "../move/index.js";
+import { Nature, natureDict, NatureEnum } from "../nature.js";
 import { IntRange } from "../type.js";
+import { moves } from "../move/index.js";
+import { TypeEnum } from "../pokemonType.js";
 
 interface PokemonInBattleOption {
   teamId: 0 | 1
-  level: IntRange<1, 101>
-  nature: NatureEnum
+  id: number
+  gender?: Gender 
 }
 
 interface MoveDict {
-  1: string
-  2: string
-  3: string
-  4: string
+  1: Move
+  2: Move
+  3: Move
+  4: Move
 }
 
-type Gender =  'male' | 'female'
+type Gender =  'male' | 'female' | 'none'
 
 export type InBattleStats = Omit<StatDict, 'hp'> & { eva: number, acc: number }
 
@@ -26,7 +28,7 @@ export type InBattleStatsKeys = keyof InBattleStats
 
 export class PokemonInBattle extends Pokemon {
   teamId: 0 | 1
-  private _nature: NatureEnum
+  private _nature!: NatureEnum
   private _ability: string
 
   stats: StatDict = {
@@ -38,17 +40,29 @@ export class PokemonInBattle extends Pokemon {
     spe: this.calculStats('spe')
   }
 
-  get nature () {
+  recomputeStats (key: StatsKey) {
+    return (this.stats[key] = this.calculStats(key))
+  }
+
+  get nature (): Nature {
     return natureDict[this._nature]
   }
 
-  constructor (pokemon: Pokemon, option: PokemonInBattleOption, public gameState: GameState) {
+  constructor (pokemon: Pokemon, options: PokemonInBattleOption,public gameState: GameState, public id: number) {
     super(pokemon)
-    this.teamId = option.teamId
-    this.level = option.level
-    this._nature = option.nature
-    this._ability = pokemon.abilities[0]  
+    this.teamId = options.teamId
+    this._ability = pokemon.abilities[0]
+    this._gender = options.gender || pokemon.hasGender ? 'male' : 'none'
   }
+
+  
+  isready () {
+    return (this._nature &&
+      (Object.keys(this.moves).length === 4) &&
+      (this.totalEv() >= 508))
+  }
+
+  effectiveHp: number = this.stats.hp
 
   statsChange: InBattleStats = {
     atk: 0,
@@ -58,6 +72,20 @@ export class PokemonInBattle extends Pokemon {
     spe: 0,
     eva: 0,
     acc: 0
+  }
+
+  isFlying = this.types.includes(TypeEnum.FLYING)
+
+  resetStats () {
+    this.statsChange = {
+      atk: 0,
+      def: 0,
+      spAtk: 0,
+      spDef: 0,
+      spe: 0,
+      eva: 0,
+      acc: 0
+    }
   }
 
   updateState (key: InBattleStatsKeys, num: number) {
@@ -111,6 +139,7 @@ export class PokemonInBattle extends Pokemon {
   }
 
   level: IntRange<1,101> = 1
+
   get evs () {
     return this._evs
   }
@@ -142,13 +171,56 @@ export class PokemonInBattle extends Pokemon {
     return this
   }
 
-  private moves: Partial<MoveDict> = {}
+  set nature (nature: NatureEnum) {
+    this._nature = nature
+  }
+
+  private _moves!: MoveDict
+
+  get moves () {
+   return this._moves
+  }
+
   get ability () {
     return this._ability
   }
 
-  gender: Gender =  'male'
-  staticStatus?: Status
+  private _gender: Gender
+
+  set gender (gender: Gender) {
+    if (this.hasGender && gender === 'none') {
+      throw new Error("can't set gender to 'none'")
+    }
+
+    if (!this.hasGender && gender !== 'none') {
+      throw new Error("this pokemon has gender")
+    }
+
+    this._gender = gender
+  }
+
+  get gender () {
+    return this._gender
+  }
+
+  staticStatus?: Status<StaticStatus>
+  volatileStatus = new Map<VolatileStatus, Status<VolatileStatus>>()
+
+  registerStatus (status: Status<VolatileStatus>) {
+    this.gameState.emit('status', this, status)
+
+    if (status.isCancel) {
+      return
+    }
+
+    this.volatileStatus.set(status.type, status)
+    status.initialize(this.gameState)
+  }
+
+  unregisterStatus (status: Status<VolatileStatus>) {
+    this.volatileStatus.delete(status.type)
+    status.clear(this.gameState)
+  }
 
   private totalEv (evs?: StatDict): number {
     return Object.values(evs || this.evs).reduce((a,b) => a + b, 0) 
@@ -163,27 +235,32 @@ export class PokemonInBattle extends Pokemon {
     this._ability = name
   }
 
-  setMove (slot: 1 | 2 | 3 | 4, move: string) {
-    if (!this.movepool.some(name =>  name === move)) {
+  setMove (slot: 1 | 2 | 3 | 4, newMove: MoveEnum) {
+    if (!this.movepool.some(move =>  move.name === newMove)) {
       throw new Error('invalid move') 
     }
 
-    this.moves[slot] = move
+    this._moves[slot] = moves[newMove]
 
     return this
   }
 
   deal (move: MoveExecute) {
-    if (move.basePower) {
-      this.stats.hp = this.stats.hp - move.basePower
-      this.gameState.emit('damageDeal', move)
-  
-      if (this.stats.hp <= 0) {
-        this.gameState.emit('kill', move)
-      } else {
-      }
+    if (move.target !== this) {
+      throw new Error('invalid target')
     }
-  } 
-}
+    if (move.basePower) {
+      this.effectiveHp -= move.basePower
+  
+      if (move.attributs.lifeSteal) {
+        move.executor.effectiveHp += (move.basePower  * (move.attributs.lifeSteal / 100))
+      }
 
-export type PokemonTeam = [PokemonInBattle, PokemonInBattle, PokemonInBattle, PokemonInBattle, PokemonInBattle, PokemonInBattle]
+      this.gameState.emit('damageDeal', move)
+    }
+  }
+
+  isCompatible(pokemon: PokemonInBattle) {
+    return this.hasGender && pokemon.hasGender && (this.gender !== pokemon.gender)
+  }
+}

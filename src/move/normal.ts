@@ -1,7 +1,8 @@
-import { Move } from "."
-import { InBattleStatsKeys } from "../battle/pokemon"
+import { Move } from "./constructor.js"
+import { InBattleStatsKeys } from "../battle/pokemon.js"
+import { Infatuation } from "../effect.js"
 import { TypeEnum  } from "../pokemonType.js"
-import { getRandomInt } from "../util/math"
+import { getRandomInt } from "../util/math.js"
 
 export enum NormalMoveEnum {
   ACUPRESSSURE = 'acupressure',
@@ -237,15 +238,17 @@ const { ACUPRESSSURE, AFTER_YOU, ATTRACT, ASSIST, BARRAGE, BATON_PASS, BELLY_DRU
 
   const { NORMAL } = TypeEnum
 
-  export const moveDict: Record<NormalMoveEnum, Move> = {
+  const moveDict = {
     [TACKLE]: new Move({
       name: TACKLE,
       type: NORMAL,
       category: 'physical',
       power: 40,
-      precision: 100,
+      accuracy: 100,
       pp: 48,
-      attributs: {},
+      attributs: {
+        isContact: true
+      },
     }),
     [ACUPRESSSURE]: new Move({
       name: ACUPRESSSURE,
@@ -257,11 +260,73 @@ const { ACUPRESSSURE, AFTER_YOU, ATTRACT, ASSIST, BARRAGE, BATON_PASS, BELLY_DRU
         selfTarget: true,
       },
       effect (move) {
-        const stats: InBattleStatsKeys[] = ['def', 'spe', 'spAtk', 'spDef', 'atk']
-        const key = stats[getRandomInt(0,5)]
+        const stats: InBattleStatsKeys[] = ['def', 'spe', 'spAtk', 'spDef', 'atk', 'acc', 'eva']
+        const key = stats[getRandomInt(0,6)]
         if (move.target) {
           move.target.updateState(key, 2)
         }
       }
+    }),
+    [ATTRACT]: new Move({
+      name: ATTRACT,
+      type: NORMAL,
+      category: 'status',
+      pp: 24,
+      effect (move) {
+        if (!move.target) return
+        if (move.executor.isCompatible(move.target)) {
+          move.target.registerStatus(new Infatuation(move.target))
+        }
+      },      
+    }),
+    [SLEEP_TALK]: new Move({
+      name: SLEEP_TALK,
+      type: NORMAL,
+      category: 'status',
+      pp: 16,
+      attributs: {
+        isMissable: false,
+        ignoreSleeping: true
+      },
+      effect (move) {
+        const moves = move.executor.moves
+        let list = Object.keys(moves).reduce<Move[]>((acc, key) => {
+          let move = moves[key]
+          if (move && move.name !== SLEEP_TALK) {
+            acc.push(move)
+          }
+          return acc
+        }, [])
+        const moveToUse = list[getRandomInt(0, list.length - 1)]
+
+        const moveExecute = moveToUse.execute(move.executor, move.target)
+        moveExecute.attributs.ignoreSleeping = true
+        moveExecute.dispatch(this)
+      }
+    }),
+    /**
+     * WIP
+     */
+    [ASSIST]: new Move({
+      name: ASSIST,
+      type: NORMAL,
+      category: 'status',
+      pp: 32,
+    }),
+    /**
+     * WIP
+     */
+    [BARRAGE]: new Move({
+      name: BARRAGE,
+      type: NORMAL,
+      category: 'physical',
+      power: 15,
+      accuracy: 85,
+      pp: 32,
+      attributs: {
+        isContact: true,
+      },
     })
-  }
+  } satisfies Record<NormalMoveEnum, Move>
+
+  export default moveDict

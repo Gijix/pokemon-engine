@@ -1,5 +1,4 @@
-import { GameEvents } from "../battle/index.js"
-import { AbstractEvent } from "../util/AbstractEvents.js"
+import { AbstractEvent, Listeners } from "../util/AbstractEvents.js"
 
 export enum WeatherEnum {
   SANDSTORM = "sandstorm",
@@ -28,14 +27,13 @@ export enum OtherEventEnum {
 
 export type EventEnum = WeatherEnum | TerrainEventEnum | OtherEventEnum
 
-export type Listeners = Partial<Record<keyof GameEvents, (...arg: GameEvents[keyof GameEvents]) => void>> 
 interface EventOption<T extends EventEnum> {
   type: T
   turn: number
   extended?: number
 }
 
-export class BaseEvent<T extends EventEnum = EventEnum> extends AbstractEvent<T> {
+export class BaseEvent<T extends EventEnum = EventEnum> extends AbstractEvent<T, BaseEvent> {
   turn: number
   extended?: number
 
@@ -54,8 +52,8 @@ export class BaseEvent<T extends EventEnum = EventEnum> extends AbstractEvent<T>
 }
 
 
-export class WeatherTerrainEvent<T extends TerrainEventEnum | WeatherEnum> extends BaseEvent<T> {
-  constructor(type: T, listeners: Listeners) {
+export class WeatherTerrainEvent<T extends TerrainEventEnum | WeatherEnum = TerrainEventEnum | WeatherEnum > extends BaseEvent<T> {
+  constructor(type: T, listeners: Listeners<WeatherTerrainEvent>) {
     super({
       turn: 5,
       extended: 8,

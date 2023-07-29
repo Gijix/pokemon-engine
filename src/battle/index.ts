@@ -1,7 +1,9 @@
+import { Status } from "../effect.js"
 import { WeatherEnum, TerrainEventEnum, OtherEventEnum, BaseEvent, WeatherTerrainEvent } from "../event/index.js"
 import { MoveExecute } from "../move/index.js"
 import { EventEmitter } from "../util/emitter.js"
-import { PokemonInBattle, PokemonTeam } from "./pokemon.js"
+import { PokemonInBattle } from "./pokemon.js"
+import { PokemonTeam, Team } from "./team.js"
 
 export type GameEvents = {
   damageDeal: [move: MoveExecute],
@@ -13,42 +15,23 @@ export type GameEvents = {
   summon: [pokemon: PokemonInBattle],
   switch: [oldPokemon: PokemonInBattle, newPokemon: PokemonInBattle],
   message: [content: string],
-}
-
-interface StaticTerrain {
-  spikes: number,
-  toxicSpikes: number,
-  stealthRock: boolean,
-  stickyWeb: boolean,
-  tailwind?: BaseEvent<OtherEventEnum.TAILWIND>
-}
-
-const baseTerrain: StaticTerrain = {
-  spikes: 0,
-  toxicSpikes: 0,
-  stealthRock: false,
-  stickyWeb: false,
-}
-
-interface Team {
-  staticTerrain: StaticTerrain,
-  pokemons: PokemonTeam,
+  init: [pokemon: PokemonInBattle]
+  status: [pokemon: PokemonInBattle, status: Status]
 }
 
 export class GameState extends EventEmitter<GameEvents> {
-  teams: [Team, Team] 
+  teams: [Team, Team]
   constructor (team0: PokemonTeam, team1: PokemonTeam ) {
     super()
-    this.teams = [
-      {
-        staticTerrain: baseTerrain,
-        pokemons: team0,
-      },
-      {
-        staticTerrain: baseTerrain,
-        pokemons: team1
-      }
-    ]
+    this.teams = [new Team(team0), new Team(team1)]
+  }
+
+  setActualPokemon (id: 0 | 1, pokemon: PokemonInBattle) {
+    if (!this.teams[id].pokemons.includes(pokemon)) {
+      throw new Error("pokemon deosn't belong to the team")
+    }
+
+    this.teams[id].actualPokemon = pokemon
   }
 
   initiliaze () {
@@ -59,17 +42,28 @@ export class GameState extends EventEmitter<GameEvents> {
         } else {
           terrain.turn--
         }
+      });
+
+      [this.terrain, this.weather].forEach(event => {
+        if (event) {
+          if (event.turn > 1) {
+            event.turn--
+          } else {
+            event.clear(this)
+            event = undefined
+          }
+        }
       })
     })
 
-    if (this.weather) {
-      if (this.weather.turn > 1) {
-        this.weather.turn--
-      } else {
-        this.weather.clear(this)
-        this.weather = undefined
-      }
-    }
+    this.on('switch', (oldPokemon) => {
+      oldPokemon.volatileStatus.forEach(status => {
+        status.clear(this)
+      })
+
+      oldPokemon.volatileStatus.clear()
+      oldPokemon.resetStats()
+    })
   }
 
   registerTerrain (terrain: BaseEvent<OtherEventEnum>) {
