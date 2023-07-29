@@ -1,4 +1,4 @@
-import { StatsKey } from "."
+import { StatsKey } from "./index.js"
 
 export enum NatureEnum {
   HARDY = 'hardy',
@@ -28,7 +28,7 @@ export enum NatureEnum {
   QUIRKY = 'quirky'
 }
 
-interface Nature {
+export interface Nature {
   name: NatureEnum
   increaseStat?: StatsKey
   decreaseStat?: StatsKey

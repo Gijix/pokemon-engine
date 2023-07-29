@@ -1,8 +1,8 @@
-import { Move } from "."
-import { InBattleStatsKeys } from "../battle/pokemon"
-import { Infatuation } from "../effect"
+import { Move } from "./constructor.js"
+import { InBattleStatsKeys } from "../battle/pokemon.js"
+import { Infatuation } from "../effect.js"
 import { TypeEnum  } from "../pokemonType.js"
-import { getRandomInt } from "../util/math"
+import { getRandomInt } from "../util/math.js"
 
 export enum NormalMoveEnum {
   ACUPRESSSURE = 'acupressure',
@@ -238,13 +238,13 @@ const { ACUPRESSSURE, AFTER_YOU, ATTRACT, ASSIST, BARRAGE, BATON_PASS, BELLY_DRU
 
   const { NORMAL } = TypeEnum
 
-  const moveDict: Record<NormalMoveEnum, Move> = {
+  const moveDict = {
     [TACKLE]: new Move({
       name: TACKLE,
       type: NORMAL,
       category: 'physical',
       power: 40,
-      precision: 100,
+      accuracy: 100,
       pp: 48,
       attributs: {
         isContact: true
@@ -278,7 +278,6 @@ const { ACUPRESSSURE, AFTER_YOU, ATTRACT, ASSIST, BARRAGE, BATON_PASS, BELLY_DRU
           move.target.registerStatus(new Infatuation(move.target))
         }
       },      
-      attributs: {}
     }),
     [SLEEP_TALK]: new Move({
       name: SLEEP_TALK,
@@ -300,9 +299,34 @@ const { ACUPRESSSURE, AFTER_YOU, ATTRACT, ASSIST, BARRAGE, BATON_PASS, BELLY_DRU
         }, [])
         const moveToUse = list[getRandomInt(0, list.length - 1)]
 
-        moveToUse.execute(move.executor, move.target).attributs.ignoreSleeping = true
+        const moveExecute = moveToUse.execute(move.executor, move.target)
+        moveExecute.attributs.ignoreSleeping = true
+        moveExecute.dispatch(this)
       }
+    }),
+    /**
+     * WIP
+     */
+    [ASSIST]: new Move({
+      name: ASSIST,
+      type: NORMAL,
+      category: 'status',
+      pp: 32,
+    }),
+    /**
+     * WIP
+     */
+    [BARRAGE]: new Move({
+      name: BARRAGE,
+      type: NORMAL,
+      category: 'physical',
+      power: 15,
+      accuracy: 85,
+      pp: 32,
+      attributs: {
+        isContact: true,
+      },
     })
-  }
+  } satisfies Record<NormalMoveEnum, Move>
 
   export default moveDict

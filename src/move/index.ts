@@ -1,74 +1,14 @@
-import { TypeEnum } from "../pokemonType.js";
+import { typeDict } from "../pokemonType.js";
 import { GameState } from "../battle/index.js";
 import { PokemonInBattle } from "../battle/pokemon.js";
 import { NormalMoveEnum } from "./normal.js";
 import { WaterMoveEnum } from "./water.js";
 import { ElectricMoveEnum } from "./electric.js";
 import { getRandomInt } from "../util/math.js";
-import { StatsChange } from "../effect.js";
-import normalMoves from "./normal.js";
-
-export type MoveEnum = NormalMoveEnum  | WaterMoveEnum | ElectricMoveEnum
-export const moves: Record<MoveEnum, Move> = {...normalMoves}
-
-type MoveCategory = 'special' | 'status' | 'physical'
-
-
-interface MoveAttributs {
-  isContact?: boolean
-  isMissable?: boolean
-  lifeSteal?: number
-  selfTarget?: boolean
-  statsChange?: StatsChange[]
-  priority?: number
-  ignoreSleeping?: boolean
-}
-
-interface MoveOptions {
-  name: MoveEnum
-  type: TypeEnum
-  category: MoveCategory
-  power?: number
-  precision?: number
-  pp: number
-  attributs: MoveAttributs
-  effect?(this: GameState, move: MoveExecute): void
-}
-
-interface RequiredOptions {
-  priority: number
-}
-
-export class Move {
-  name: MoveEnum
-  type: TypeEnum
-  category: MoveCategory
-  power: number
-  precision: number
-  pp: number
-  attributs: MoveAttributs & RequiredOptions = {
-    priority: 0
-  }
-  effect?: (this: GameState, move: MoveExecute) => void 
-  constructor (options: MoveOptions) {
-    const { type, category, power, precision, attributs, name, effect, pp } = options
-    this.name = name
-    this.type = type
-    this.category = category
-    this.power = power || 0
-    this.precision = precision || 0
-    this.attributs = {...this.attributs, ...attributs}
-    this.pp = pp
-    this.effect = effect
-  }
-
-  execute (executor: PokemonInBattle, target?: PokemonInBattle) {
-    if (this.constructor.name !== 'Move') {
-      throw new Error('move already execute')
-    }
-    return new MoveExecute(this, {executor, target})
-  }
-}
+import { FlyingMoveEnum } from "./flying.js";
+import { IceMoveEnum } from "./ice.js";
+import { GroundMoveEnum } from "./ground.js";
+import { Move } from './constructor.js'
 
 export class MoveExecute extends Move {
   executor: PokemonInBattle
@@ -77,13 +17,17 @@ export class MoveExecute extends Move {
   basePower?: number
   multiplier = 1
   isCancel = false
-  isBlockedBySleeping = false
+  isBlockedBySleeping = true
 
   private get isStab () {
     return this.executor.types.includes(this.type)
   }
 
   dispatch (state: GameState) {
+    if (this.init) {
+      this.init.bind(state)(this)
+    }
+
     state.emit('move', this)
 
     if (this.isCancel) {
@@ -94,14 +38,33 @@ export class MoveExecute extends Move {
       if (this.category !== 'status') {
         this.basePower = this.calcBasePower() * this.multiplier 
         if (this.isStab) {
-          this.basePower = this.basePower * this.stab
+          this.basePower = this.muli(this.stab)
         }
+
+        this.target.types.forEach(move => {
+          const moveType = typeDict[this.type]
+          if (moveType.isInnefficentAgainst(move)) {
+            this.muli(0)
+            return
+          }
+
+          if (moveType.isEffectiveAgainst(move)) {
+            this.muli(2)
+            return
+          }
+
+          if(moveType.isInneffectiveAgainst(move)) {
+            this.muli(0.5)
+            return
+          }
+        })
+
         this.target.deal(this)
       }
+    }
 
-      if (this.effect) {
-        this.effect.bind(state)(this)
-      }
+    if (this.effect) {
+      this.effect.bind(state)(this)
     }
   }
 
@@ -156,3 +119,11 @@ export class MoveExecute extends Move {
     }
   }
 }
+
+import normalMoves from "./normal.js";
+import waterMoves from "./water.js";
+import electricMoves from "./electric.js";
+import flyingMoves from "./flying.js";
+
+export type MoveEnum = NormalMoveEnum  | WaterMoveEnum | ElectricMoveEnum | FlyingMoveEnum | WaterMoveEnum | IceMoveEnum | GroundMoveEnum
+export const moves: Record<MoveEnum, Move> = {...normalMoves, ...waterMoves, ...electricMoves, ...flyingMoves}

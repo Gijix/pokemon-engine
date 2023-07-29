@@ -1,26 +1,29 @@
-import { GameEvents, GameState } from "../battle/."
+import { GameEvents, GameState } from "../battle/index.js"
 
 export type Listeners<T = any, S extends keyof GameEvents = keyof GameEvents> = Partial<{
   [K in S]: (this: T, ...args: GameEvents[K]) => unknown;
 }>;
 
 export abstract class AbstractEvent<T, S = any, R extends keyof GameEvents = keyof GameEvents> {
-  initialize (game: GameState) {
+  gameState!: GameState
+  isCancel = false;
+  initialize (state: GameState) {
+    this.gameState = state
     Object.keys(this.listeners).forEach((key) => {
       const func = this.listeners[key]
 
       if (func) {
-        game.on(key, func)
+        state.on(key, func)
       }
     })
   }
 
-  clear (game: GameState) {
+  clear (state: GameState) {
     Object.keys(this.listeners).forEach((key) => {
       const func = this.listeners[key]
 
       if (func) {
-        game.off(key, func)
+        state.off(key, func)
       }
     })
   }
